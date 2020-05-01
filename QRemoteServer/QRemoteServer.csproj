@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AsynchronousSocketListener.cs" />
+    <Compile Include="AutorunManager.cs" />
     <Compile Include="ConfigManager.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>

@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Xml.Serialization;
 using System.IO;
+using System.Windows.Forms;
 
 namespace QRemoteServer
 {
@@ -12,58 +10,59 @@ namespace QRemoteServer
         /// <summary>
         /// Путь к конфигу
         /// </summary>
-        public static string ConfigPath = "config.cfg";
+        public static string ConfigPath = Application.StartupPath + "\\config.xml";
 
         /// <summary>
-        /// IP из конфига
+        /// Получение и десериализация данных конфигурации из файла
         /// </summary>
-        public static string IP
+        /// <returns>Класс с настройками</returns>
+        public static ConfigData GetConfigData()
         {
-            get
-            {
-                if (ip == String.Empty)
-                    GetData();
-                return ip;
-            }
-        }
-
-        /// <summary>
-        /// Порт из конфига
-        /// </summary>
-        public static int Port
-        {
-            get
-            {
-                if (port == String.Empty)
-                    GetData();
-                return Convert.ToInt32(port);
-            }
-        }
-
-        // Поля для ip и порта
-        private static string ip = String.Empty;
-        private static string port = String.Empty;
-
-        /// <summary>
-        /// Получение данных из конфига
-        /// </summary>
-        public static void GetData()
-        {
+            ConfigData settings;
             try
             {
-                string[] arr = File.ReadAllLines(ConfigPath);
-                if (arr.Length > 2)
-                    throw new Exception("config is broken");
-                ip = arr[0].Split('=')[1].Trim().ToLowerInvariant();
-                port = arr[1].Split('=')[1].Trim().ToLowerInvariant();
+                using (Stream stream = new FileStream(ConfigPath, FileMode.Open))
+                {
+                    XmlSerializer serializer = new XmlSerializer(typeof(ConfigData));
+                    settings  = (ConfigData)serializer.Deserialize(stream);
+                    return settings;
+                }
             }
-            catch(Exception e)
+            catch
             {
-                File.WriteAllLines(ConfigPath,  new string[] { "ip=Auto", "port=11000" });
-                ip = "auto";
-                port = "11000";
-                Console.WriteLine(e.ToString());
+                settings = new ConfigData();
+                settings.IP = "auto";
+                settings.Port = 11000;
+                settings.AutoRun = true;
+                try
+                {
+                    SaveConfigData(settings);
+                }
+                catch
+                {
+                    return settings;
+                }
+                return settings;
             }
         }
+
+        /// <summary>
+        /// Сериализация и сохранение данных конфигурации
+        /// </summary>
+        /// <param name="data">Файл с записанными настройками</param>
+        public static void SaveConfigData(ConfigData data)
+        {
+            using (Stream writer = new FileStream(ConfigPath, FileMode.Create))
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(ConfigData));
+                serializer.Serialize(writer, data);
+            }
+        }
+    }
+    public class ConfigData
+    {
+        public string IP;
+        public int Port;
+        public bool AutoRun;
     }
 }
