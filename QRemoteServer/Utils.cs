@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -30,14 +31,20 @@ namespace QRemoteServer
             return bmp;
         }
 
-        public static byte[] ImageToByte(Image img)
+        public static byte[] ImageToByte(Image img, long quality)
         {
             byte[] byteArray = new byte[10000];
-            MemoryStream stream = new MemoryStream();
-            img.Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg);
-            byteArray = stream.ToArray();
-            stream.Close();
-            stream.Dispose();
+            using (MemoryStream stream = new MemoryStream())
+            {
+                ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+                System.Drawing.Imaging.Encoder myEncoder = 
+                    System.Drawing.Imaging.Encoder.Quality;
+                EncoderParameters myEncoderParameters = new EncoderParameters(1);
+                EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, quality);
+                myEncoderParameters.Param[0] = myEncoderParameter;
+                img.Save(stream, jpgEncoder, myEncoderParameters);
+                byteArray = stream.ToArray();
+            }
             return byteArray;
         }
         public static Image byteArrayToImage(byte[] byteArrayIn)
@@ -58,6 +65,18 @@ namespace QRemoteServer
                 }
             }
             throw new Exception("No network adapters with an IPv4 address in the system!");
+        }
+        private static ImageCodecInfo GetEncoder(ImageFormat format)
+        {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
         }
     }
 }

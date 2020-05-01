@@ -20,6 +20,7 @@ namespace QRemoteServer
         public byte[] buffer = new byte[BufferSize];
         // Received data string.  
         public Image img;
+        public int quality;
     }
     public class AsynchronousSocketListener
     {
@@ -115,10 +116,11 @@ namespace QRemoteServer
                     string str = Encoding.ASCII.GetString(state.buffer, 0, bytesRead);
                     //Console.WriteLine(str);
                     //log.Report(str);
-                    if (str == "scrSize")
+                    if (str.Contains("scrSize="))
                     {
+                        state.quality = Convert.ToInt32(str.Split('=')[1]);
                         state.img = Utils.ImageFromScreen(true);
-                        int size = Utils.ImageToByte(state.img).Length;
+                        int size = Utils.ImageToByte(state.img, state.quality).Length;
                         //log.Report(size.ToString());
                         Console.WriteLine(size);
                         sendIntDone.Reset();
@@ -135,7 +137,7 @@ namespace QRemoteServer
                     else if (str == "scr")
                     {
                         sendDone.Reset();
-                        Send(handler, state.img);
+                        Send(handler, state.img, state.quality);
                         sendDone.WaitOne();
                         state.img.Dispose();
                     }
@@ -150,11 +152,11 @@ namespace QRemoteServer
             }
         }
 
-        private static void Send(Socket handler, Image data)
+        private static void Send(Socket handler, Image data, int quality)
         {
             sendDone.Reset();
             // Convert the string data to byte data using ASCII encoding.  
-            byte[] byteData = Utils.ImageToByte(data);
+            byte[] byteData = Utils.ImageToByte(data, quality);
             // Begin sending the data to the remote device.  
             try
             {
