@@ -22,17 +22,12 @@ namespace QRemoteServer
         public Image img;
         public int quality;
     }
-    public class AsynchronousSocketListener
+    public static class AsynchronousSocketListener
     {
         // Thread signal.  
         public static ManualResetEvent allDone = new ManualResetEvent(false);
-        private static ManualResetEvent sendIntDone = new ManualResetEvent(false);
-        private static ManualResetEvent sendDone = new ManualResetEvent(false);
         private static IProgress<string> log;
 
-        public AsynchronousSocketListener()
-        {
-        }
         public async static void StartListening(TextBox logTextBox, TextBox ipTextBox,string ip = "auto", int port = 11000)
         {
             var log_tb = new Progress<string>(text => logTextBox.Text = DateTime.Now + ": " + text + "\r\n" + logTextBox.Text);
@@ -119,13 +114,13 @@ namespace QRemoteServer
                     if (str.Contains("scrSize="))
                     {
                         state.quality = Convert.ToInt32(str.Split('=')[1]);
+                        if (state.img != null)
+                            state.img.Dispose();
                         state.img = Utils.ImageFromScreen(true);
                         int size = Utils.ImageToByte(state.img, state.quality).Length;
                         //log.Report(size.ToString());
                         Console.WriteLine(size);
-                        sendIntDone.Reset();
-                        Send(handler, size);
-                        sendIntDone.WaitOne();
+                        Send(state, size);
                     }
                     else if (str == "fuckOff")
                     {
@@ -136,10 +131,13 @@ namespace QRemoteServer
                     }
                     else if (str == "scr")
                     {
-                        sendDone.Reset();
-                        Send(handler, state.img, state.quality);
-                        sendDone.WaitOne();
+                        Send(state, state.img, state.quality);
                         state.img.Dispose();
+                    }
+                    else if (str == "qhi")
+                    {
+                        log.Report("Кто-то проверил состояние сервера");
+                        Send(state, "qhi");
                     }
                     state.buffer = new byte[StateObject.BufferSize];
                     handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
@@ -152,72 +150,25 @@ namespace QRemoteServer
             }
         }
 
-        private static void Send(Socket handler, Image data, int quality)
+        private static void Send(StateObject state, Image data, int quality)
         {
-            sendDone.Reset();
-            // Convert the string data to byte data using ASCII encoding.  
             byte[] byteData = Utils.ImageToByte(data, quality);
-            // Begin sending the data to the remote device.  
-            try
-            {
-                handler.BeginSend(byteData, 0, byteData.Length, 0,
-                    new AsyncCallback(SendImgCallback), handler);
-            }
-            catch (Exception e)
-            {
-                log.Report(e.ToString());
-            }
+            Send(state, byteData);
         }
-        private static void Send(Socket handler, int data)
-        {
-            sendIntDone.Reset();
-            // Convert the string data to byte data using ASCII encoding.  
+        private static void Send(StateObject state, int data)
+        { 
             byte[] byteData = BitConverter.GetBytes(data);
-            // Begin sending the data to the remote device.
-            try
-            {
-                handler.BeginSend(byteData, 0, byteData.Length, 0,
-                    new AsyncCallback(SendIntCallback), handler);
-            }
-            catch(Exception e)
-            {
-                log.Report(e.Message);
-            }
+            Send(state, byteData);
+        }
+        private static void Send(StateObject state, string data)
+        {
+            byte[] byteData = Encoding.ASCII.GetBytes(data);
+            Send(state, byteData);
         }
 
-        private static void SendImgCallback(IAsyncResult ar)
+        private static void Send(StateObject state, byte[] byteData)
         {
-            try
-            {
-                // Retrieve the socket from the state object.  
-                Socket handler = (Socket)ar.AsyncState;
-
-                // Complete sending the data to the remote device.  
-                int bytesSent = handler.EndSend(ar);
-                //log.Report("Отправлено " + bytesSent + " байт");
-                sendDone.Set();
-            }
-            catch (Exception e)
-            {
-                log.Report(e.Message);
-            }
-        }
-        private static void SendIntCallback(IAsyncResult ar)
-        {
-            try
-            {
-                // Retrieve the socket from the state object.  
-                Socket handler = (Socket)ar.AsyncState;
-
-                // Complete sending the data to the remote device.  
-                int bytesSent = handler.EndSend(ar);
-                //log.Report("Отправлено " + bytesSent + " байт");
-                sendIntDone.Set();
-            }
-            catch (Exception e)
-            {
-                log.Report(e.Message);
-            }
+            state.workSocket.Send(byteData, 0, byteData.Length, 0);
         }
     }
 }

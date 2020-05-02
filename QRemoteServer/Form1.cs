@@ -63,7 +63,17 @@ namespace QRemoteServer
                 notifyIcon1.Visible = false;
             }
             else
-                notifyIcon1.ShowBalloonTip(2000, "ip:порт", ipTextBox.Text, ToolTipIcon.Info);
+                contextMenuStrip1.Items[0].Text = ipTextBox.Text;
+        }
+
+        private void ToolStripRestoreButton_Click(object sender, EventArgs e)
+        {
+            NotifyIcon1_MouseClick(sender, new MouseEventArgs(MouseButtons.Left, 1, 0, 0, 0));
+        }
+
+        private void ToolStripExitButton1_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
         }
     }
 }

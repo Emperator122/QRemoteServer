@@ -37,9 +37,14 @@
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.logTextBox = new System.Windows.Forms.TextBox();
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.toolStripRestoreButton = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripExitButton1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripTextBox1 = new System.Windows.Forms.ToolStripTextBox();
             ((System.ComponentModel.ISupportInitialize)(this.headerPB)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
+            this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // headerPB
@@ -119,9 +124,40 @@
             // 
             // notifyIcon1
             // 
+            this.notifyIcon1.ContextMenuStrip = this.contextMenuStrip1;
             this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
             this.notifyIcon1.Text = "QRemoteServer";
             this.notifyIcon1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.NotifyIcon1_MouseClick);
+            // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripTextBox1,
+            this.toolStripRestoreButton,
+            this.toolStripExitButton1});
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(181, 95);
+            // 
+            // toolStripRestoreButton
+            // 
+            this.toolStripRestoreButton.Name = "toolStripRestoreButton";
+            this.toolStripRestoreButton.Size = new System.Drawing.Size(180, 22);
+            this.toolStripRestoreButton.Text = "Развернуть";
+            this.toolStripRestoreButton.Click += new System.EventHandler(this.ToolStripRestoreButton_Click);
+            // 
+            // toolStripExitButton1
+            // 
+            this.toolStripExitButton1.Name = "toolStripExitButton1";
+            this.toolStripExitButton1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripExitButton1.Text = "Выход";
+            this.toolStripExitButton1.Click += new System.EventHandler(this.ToolStripExitButton1_Click);
+            // 
+            // toolStripTextBox1
+            // 
+            this.toolStripTextBox1.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.toolStripTextBox1.Name = "toolStripTextBox1";
+            this.toolStripTextBox1.ReadOnly = true;
+            this.toolStripTextBox1.Size = new System.Drawing.Size(100, 23);
             // 
             // Form1
             // 
@@ -141,6 +177,8 @@
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
+            this.contextMenuStrip1.ResumeLayout(false);
+            this.contextMenuStrip1.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -154,6 +192,10 @@
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.TextBox logTextBox;
         private System.Windows.Forms.NotifyIcon notifyIcon1;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.ToolStripMenuItem toolStripRestoreButton;
+        private System.Windows.Forms.ToolStripMenuItem toolStripExitButton1;
+        private System.Windows.Forms.ToolStripTextBox toolStripTextBox1;
     }
 }
 
