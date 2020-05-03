@@ -27,7 +27,7 @@ namespace QRemoteServer
         // Thread signal.  
         public static ManualResetEvent allDone = new ManualResetEvent(false);
         private static IProgress<string> log;
-
+        
         public async static void StartListening(TextBox logTextBox, TextBox ipTextBox,string ip = "auto", int port = 11000)
         {
             var log_tb = new Progress<string>(text => logTextBox.Text = DateTime.Now + ": " + text + "\r\n" + logTextBox.Text);
