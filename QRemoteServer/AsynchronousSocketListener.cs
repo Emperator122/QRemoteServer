@@ -9,25 +9,34 @@ using System.Threading.Tasks;
 
 namespace QRemoteServer
 {
-    // State object for reading client data asynchronously  
+    // Объект для асинхронного чтения данных клиента
     public class StateObject
     {
-        // Client  socket.  
+        // Клиентский сокет
         public Socket workSocket = null;
-        // Size of receive buffer.  
+        // Размер буффера  
         public static int BufferSize = 256;
-        // Receive buffer.  
+        // Буффер
         public byte[] buffer = new byte[BufferSize];
-        // Received data string.  
+        // Изображение, которое будет отправлено клиенту по запросу
         public Image img;
+        // Качество изображения
         public int quality;
     }
     public static class AsynchronousSocketListener
     {
-        // Thread signal.  
+        // Сигнал для потока 
         public static ManualResetEvent allDone = new ManualResetEvent(false);
+        // Вывод строки
         private static IProgress<string> log;
         
+        /// <summary>
+        /// Асинхронный запуск прослушивания
+        /// </summary>
+        /// <param name="logTextBox">TextBox для вывода лога</param>
+        /// <param name="ipTextBox">TextBox для вывода данных для коннекта</param>
+        /// <param name="ip">IP адрес</param>
+        /// <param name="port">Порт</param>
         public async static void StartListening(TextBox logTextBox, TextBox ipTextBox,string ip = "auto", int port = 11000)
         {
             var log_tb = new Progress<string>(text => logTextBox.Text = DateTime.Now + ": " + text + "\r\n" + logTextBox.Text);
@@ -35,22 +44,28 @@ namespace QRemoteServer
             await Task.Factory.StartNew<bool>(
                 () => AsynchronousSocketListener.StartListening(log_tb, ip_tb, ip, port), TaskCreationOptions.LongRunning);
         }
+
+        /// <summary>
+        /// Запуск прослушивания
+        /// </summary>
+        /// <param name="log">IProgress для вывода сообщений в лог</param>
+        /// <param name="ip_tb">IProgress для вывода данных для коннекта</param>
+        /// <param name="ip">IP</param>
+        /// <param name="port">Порт</param>
+        /// <returns></returns>
         private static bool StartListening(IProgress<string> log, IProgress<string> ip_tb, string ip, int port)
         {
-            // Establish the local endpoint for the socket.  
-            // The DNS name of the computer  
-            // running the listener is "host.contoso.com".  
-            //IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
+            // Разбираемся с IP
             if (ip == "auto")
                 ip = Utils.GetLocalIPAddress();
             IPAddress ipAddress = IPAddress.Parse(ip);
             IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
             AsynchronousSocketListener.log = log;
             ip_tb.Report(ipAddress + ":" + port);
-            // Create a TCP/IP socket.  
+            // Создаем сокет  
             Socket listener = new Socket(ipAddress.AddressFamily,
                 SocketType.Stream, ProtocolType.Tcp);
-            // Bind the socket to the local endpoint and listen for incoming connections.  
+            // Запускаем прослушивание 
             try
             {
                 listener.Bind(localEndPoint);
@@ -58,16 +73,15 @@ namespace QRemoteServer
 
                 while (true)
                 {
-                    // Set the event to nonsignaled state.  
+                    // Сбрасываем событие
                     allDone.Reset();
 
-                    // Start an asynchronous socket to listen for connections.  
                     log.Report("Ожидание соединения...");
                     listener.BeginAccept(
                         new AsyncCallback(AcceptCallback),
                         listener);
 
-                    // Wait until a connection is made before continuing.  
+                    // Ждем соедининия, преждем чем продолжить ждать следующее
                     allDone.WaitOne();
                 }
 
@@ -83,63 +97,58 @@ namespace QRemoteServer
 
         public static void AcceptCallback(IAsyncResult ar)
         {
-            // Signal the main thread to continue.  
+            // Сигнал главному потоку продолжиться
             allDone.Set();
             log.Report("Соединение установлено");
-            // Get the socket that handles the client request.  
+            // Получаем сокет
             Socket listener = (Socket)ar.AsyncState;
             Socket handler = listener.EndAccept(ar);
-            // Create the state object.  
+            // Создаем новый стейтмент
             StateObject state = new StateObject();
             state.workSocket = handler;
+            // Начинаем прием данных от клиента
             handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                 new AsyncCallback(ReadCallback), state);
         }
         public static void ReadCallback(IAsyncResult ar)
         {
-            // Retrieve the state object and the handler socket  
-            // from the asynchronous state object.  
             StateObject state = (StateObject)ar.AsyncState;
             Socket handler = state.workSocket;
-            // Read data from the client socket.
+            // Получаем данные от клиента
             int bytesRead = handler.EndReceive(ar);
             try
             {
+                // Определяем, что требуется клиенту
                 if (bytesRead > 0)
                 {
-                    //log.Report("Получено "+ bytesRead+" байт");
                     string str = Encoding.ASCII.GetString(state.buffer, 0, bytesRead);
-                    //Console.WriteLine(str);
-                    //log.Report(str);
-                    if (str.Contains("scrSize="))
+                    if (str.Contains("scrSize=")) // Размер скриншота экрана
                     {
                         state.quality = Convert.ToInt32(str.Split('=')[1]);
                         if (state.img != null)
                             state.img.Dispose();
                         state.img = Utils.ImageFromScreen(true);
                         int size = Utils.ImageToByte(state.img, state.quality).Length;
-                        //log.Report(size.ToString());
-                        Console.WriteLine(size);
                         Send(state, size);
                     }
-                    else if (str == "fuckOff")
+                    else if (str == "fuckOff") // Клиент отключается
                     {
                         log.Report("Клиент отключен от сервера");
                         handler.Shutdown(SocketShutdown.Both);
                         handler.Close();
                         return;
                     }
-                    else if (str == "scr")
+                    else if (str == "scr") // Скриншот экрана
                     {
                         Send(state, state.img, state.quality);
                         state.img.Dispose();
                     }
-                    else if (str == "qhi")
+                    else if (str == "qhi") // Проверка состояния сервера
                     {
                         log.Report("Кто-то проверил состояние сервера");
                         Send(state, "qhi");
                     }
-                    state.buffer = new byte[StateObject.BufferSize];
+                    state.buffer = new byte[StateObject.BufferSize]; // Очистка буффера
                     handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                         new AsyncCallback(ReadCallback), state);
                 }
@@ -150,22 +159,44 @@ namespace QRemoteServer
             }
         }
 
+        /// <summary>
+        /// Отправка изображения
+        /// </summary>
+        /// <param name="state">Объект с информацией о соединении</param>
+        /// <param name="data">Изображение</param>
+        /// <param name="quality">Качество</param>
         private static void Send(StateObject state, Image data, int quality)
         {
             byte[] byteData = Utils.ImageToByte(data, quality);
             Send(state, byteData);
         }
+
+        /// <summary>
+        /// Отправка целого числа
+        /// </summary>
+        /// <param name="state">Объект с информацией о соединении</param>
+        /// <param name="data">Целое число</param>
         private static void Send(StateObject state, int data)
         { 
             byte[] byteData = BitConverter.GetBytes(data);
             Send(state, byteData);
         }
+
+        /// <summary>
+        /// Отправка строки
+        /// </summary>
+        /// <param name="state">Объект с информацией о соединении</param>
+        /// <param name="data">Строка</param>
         private static void Send(StateObject state, string data)
         {
             byte[] byteData = Encoding.ASCII.GetBytes(data);
             Send(state, byteData);
         }
-
+        /// <summary>
+        /// Отправка массива байт
+        /// </summary>
+        /// <param name="state">Объект с информацией о соединении</param>
+        /// <param name="byteData">Массив байт</param>
         private static void Send(StateObject state, byte[] byteData)
         {
             state.workSocket.Send(byteData, 0, byteData.Length, 0);
